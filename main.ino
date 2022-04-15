@@ -1,40 +1,61 @@
-#define trigPin 50
-#define echoPin 51
-/*Ultrasonic Sensor (HC-SR04)*/
-//ultrasonic speed : 340m/s
-float duration, distance;
+// Include the Stepper library:
+#include <Stepper.h>
+// Define number of steps per revolution:
+const int stepsPerRevolution = 200;
+// Give the motor control pins names:
+#define pwmA 3
+#define pwmB 11
+#define brakeA 9
+#define brakeB 8
+#define dirA 12
+#define dirB 13
+#define PUSH_SW  2
 
+int pressed = false; 
+// Initialize the stepper library on the motor shield:
+Stepper myStepper = Stepper(stepsPerRevolution, dirA, dirB);
 void setup() {
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  SerialASC.begin(9600);
+  // Set the PWM and brake pins so that the direction pins can be used to control the motor:
+  pinMode(pwmA, OUTPUT);
+  pinMode(pwmB, OUTPUT);
+  pinMode(brakeA, OUTPUT);
+  pinMode(brakeB, OUTPUT);
+  digitalWrite(pwmA, HIGH);
+  digitalWrite(pwmB, HIGH);
+  digitalWrite(brakeA, LOW);
+  digitalWrite(brakeB, LOW);
+   pinMode(PUSH_SW, INPUT);
+  // Set the motor speed (RPMs):
+  myStepper.setSpeed(0);
 }
 
+void stepmotor_open(){
+  myStepper.setSpeed(10);
+  myStepper.step(stepsPerRevolution);
+}
+
+void stepmotor_close(){
+  myStepper.setSpeed(10);
+  myStepper.step(-stepsPerRevolution);
+}
 void loop() {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW); 
-  // Echo 핀으로 들어온 펄스 시간 (us) 측정 
-  //pulseIn(pin, value, timeout)
-  //pin :  the number of the Arduino pin on which you want to read the pulse.
-  //value: type of pulse to read: either HIGH or LOW
-  //timeout (optional): the number of microseconds to wait for the pulse to start; 
-  // --> default is one second, unsigned long
-  duration = pulseIn(echoPin, HIGH, 11000); //time[us]
-  distance = ((float)(duration)*0.34/10)/2; //time[us]*speed[cm/us]
-   SerialASC.println(distance);
-  /*
-  if ((distance < 7.0f) | (distance > 400))
+
+    /* Read button */
+  if (digitalRead(PUSH_SW) == false) // push : 0, NOP : 1
   {
-    SerialASC.println("Distance Caution ");
+    pressed = !pressed;
   }
-  else
+  while (digitalRead(PUSH_SW) == false);
+  delay(20); //ms
+
+  
+  // 트렁크 열림 신호
+  if(pressed == TRUE)
   {
-    SerialASC.print("Distance: ");
-    SerialASC.println(distance);
+    stepmotor_open();
   }
-  */
-  delay(100);
+  if(pressed == FALSE)
+  {
+    stepmotor_close();
+  }
 }
